@@ -168,31 +168,6 @@ export default function DaftarUjianSiswa({ navigation }) {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} />
         }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={styles.headerTopRow}>
-              <View style={styles.headerIconWrap}>
-                <Image source={ICON_UJIAN} style={styles.headerIconImg} resizeMode="contain" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.headerCaption}>Kelola dan kerjakan ujianmu di sini</Text>
-              </View>
-            </View>
-
-            {total > 0 && (
-              <View style={styles.headerStatsRow}>
-                <View style={styles.headerStatPill}>
-                  <View style={[styles.headerStatDot, { backgroundColor: COLORS.primary }]} />
-                  <Text style={styles.headerStatPillText}>{aktifCount} Berlangsung</Text>
-                </View>
-                <View style={styles.headerStatPill}>
-                  <View style={[styles.headerStatDot, { backgroundColor: COLORS.success }]} />
-                  <Text style={styles.headerStatPillText}>{selesaiCount} Selesai</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        }
         ListEmptyComponent={
           !loading && (
             <View style={styles.emptyState}>
