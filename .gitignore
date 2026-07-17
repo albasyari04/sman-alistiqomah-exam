@@ -2,6 +2,9 @@
 
 # dependencies
 node_modules/
+jspm_packages/
+web_modules/
+bower_components
 
 # Expo
 .expo/
@@ -18,24 +21,81 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# generated native folders
+/ios
+/android
+
 # Metro
 .metro-health-check*
 
-# debug
+# dotenv environment variable files
+.env
+.env.*
+.env*.local
+!.env.example
+
+# debug / logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+logs
+*.log
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+lib-cov
+coverage
+*.lcov
+.nyc_output
 
 # macOS
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
-
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Next.js / build output (in case ever used together)
+.next
+out
+
+# Optional caches
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+.cache
+.parcel-cache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# yarn v3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# pnpm
+.pnpm-store
+
+# Vite files
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+.vite/
+
+# VSCode test
+.vscode-test
