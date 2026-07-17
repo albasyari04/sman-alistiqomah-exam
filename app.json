@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "sman-alistiqomah-exam",
+    "name": "Ujian Mobile",
     "slug": "sman-alistiqomah-exam",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/icon.png",
       "bundler": "metro",
       "output": "single"
     },
