@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: COLOR_TEXT },
 
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 40 },
 
   sectionLabel: {
     fontSize: 12.5,

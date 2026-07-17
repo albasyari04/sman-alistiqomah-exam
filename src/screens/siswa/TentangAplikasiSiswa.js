@@ -135,9 +135,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: COLOR_TEXT },
 
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 40 },
 
-  hero: { alignItems: 'center', marginBottom: 20, marginTop: 6 },
+  hero: { alignItems: 'center', marginBottom: 20, marginTop: 10 },
   logoWrap: {
     width: 84,
     height: 84,

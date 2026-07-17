@@ -175,7 +175,6 @@ export default function DaftarUjianSiswa({ navigation }) {
                 <Image source={ICON_UJIAN} style={styles.headerIconImg} resizeMode="contain" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.headerCount}>{total} Ujian Tersedia</Text>
                 <Text style={styles.headerCaption}>Kelola dan kerjakan ujianmu di sini</Text>
               </View>
             </View>
@@ -278,7 +277,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   headerCount: { fontSize: 17, fontWeight: '700', color: COLORS.textDark },
-  headerCaption: { fontSize: 12.5, color: COLORS.textMuted, marginTop: 2 },
+  headerCaption: { fontSize: 13.5, fontWeight: '600', color: COLORS.textDark },
   headerStatsRow: {
     flexDirection: 'row',
     gap: 10,
