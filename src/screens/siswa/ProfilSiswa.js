@@ -227,11 +227,34 @@ export default function ProfilSiswa({ navigation }) {
   }
 
   // ---------- Keluar ----------
+  const [loggingOut, setLoggingOut] = useState(false)
+
   function handleLogout() {
     Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
-      { text: 'Keluar', style: 'destructive', onPress: () => signOut() },
+      { text: 'Keluar', style: 'destructive', onPress: doLogout },
     ])
+  }
+
+  async function doLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      const { error } = await signOut()
+      if (error) {
+        setLoggingOut(false)
+        Alert.alert('Gagal Keluar', error.message || 'Terjadi kesalahan saat mencoba keluar.')
+        return
+      }
+      // Berhasil sign out dari Supabase.
+      // Jika AuthContext mendengarkan onAuthStateChange, state akan otomatis
+      // ter-update dan RootNavigator akan pindah ke AuthStack.
+      // setProfile(null) di sini sebagai jaga-jaga kalau context tidak auto-update.
+      setProfile(null)
+    } catch (err) {
+      setLoggingOut(false)
+      Alert.alert('Gagal Keluar', err?.message || 'Terjadi kesalahan tak terduga.')
+    }
   }
 
   return (
@@ -397,9 +420,20 @@ export default function ProfilSiswa({ navigation }) {
           </SectionCard>
           
           {/* ---------- Keluar ---------- */}
-          <TouchableOpacity style={styles.logoutRow} activeOpacity={0.8} onPress={handleLogout}>
-            <IconLogout />
-            <Text style={styles.logoutText}>Keluar dari Akun</Text>
+          <TouchableOpacity
+            style={styles.logoutRow}
+            activeOpacity={0.8}
+            onPress={handleLogout}
+            disabled={loggingOut}
+          >
+            {loggingOut ? (
+              <ActivityIndicator size="small" color="#C0392B" />
+            ) : (
+              <IconLogout />
+            )}
+            <Text style={styles.logoutText}>
+              {loggingOut ? 'Sedang keluar...' : 'Keluar dari Akun'}
+            </Text>
             <IconChevronRight color="#C0392B" />
           </TouchableOpacity>
         </ScrollView>
