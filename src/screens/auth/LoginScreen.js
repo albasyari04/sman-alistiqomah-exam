@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#E1E1E1', borderRadius: 12,
     paddingHorizontal: 14, marginBottom: 14, backgroundColor: '#fff', height: 52,
   },
-  input: { flex: 1, marginLeft: 10, fontSize: 14, color: '#222' },
+  input: { flex: 1, marginLeft: 10, fontSize: 14, color: '#222', outlineStyle: 'none' },
   button: {
     backgroundColor: '#1B5E20', height: 52, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center', marginTop: 6,
