@@ -449,7 +449,7 @@ export default function DashboardSiswa({ navigation }) {
                 onPress={() => navigation.navigate('PengumumanSiswa')}
               >
                 <View style={[styles.pengumumanIconWrap, { backgroundColor: meta.bg }]}>
-                  <meta.icon color={meta.color} />
+                  <Image source={ICONS.pengumuman} style={styles.pengumumanIconImg} resizeMode="contain" />
                 </View>
                 <View style={styles.pengumumanTextWrap}>
                   {(p.category || 'umum') === 'umum' ? null : (
@@ -744,6 +744,7 @@ const styles = StyleSheet.create({
   colSeeAll: { fontSize: 10.5, color: COLOR_PRIMARY, fontWeight: '600' },
   pengumumanRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
   pengumumanIconWrap: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  pengumumanIconImg: { width: 20, height: 20 },
   pengumumanTextWrap: { flex: 1 },
   pengumumanCategory: { fontSize: 9.5, fontWeight: '700', color: COLOR_PRIMARY, marginBottom: 2, textTransform: 'capitalize' },
   pengumumanLabel: { fontSize: 11.5, fontWeight: '700', color: COLOR_TEXT, lineHeight: 14 },

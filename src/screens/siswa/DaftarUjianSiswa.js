@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   headerStatPillText: { fontSize: 11.5, fontWeight: '600', color: COLORS.textDark },
 
-  listContent: { paddingBottom: 100, flexGrow: 1 },
+  listContent: { paddingTop: 16, paddingBottom: 100, flexGrow: 1 },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', marginTop: 80, paddingHorizontal: 20 },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: COLORS.textDark, marginTop: 12 },
