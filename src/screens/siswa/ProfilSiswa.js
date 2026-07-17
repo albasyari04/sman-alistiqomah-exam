@@ -230,6 +230,13 @@ export default function ProfilSiswa({ navigation }) {
   const [loggingOut, setLoggingOut] = useState(false)
 
   function handleLogout() {
+    if (Platform.OS === 'web') {
+      // Alert.alert tidak menampilkan dialog apapun di web (react-native-web),
+      // jadi gunakan window.confirm sebagai gantinya khusus untuk platform web.
+      const confirmed = window.confirm('Apakah Anda yakin ingin keluar dari akun ini?')
+      if (confirmed) doLogout()
+      return
+    }
     Alert.alert('Keluar', 'Apakah Anda yakin ingin keluar dari akun ini?', [
       { text: 'Batal', style: 'cancel' },
       { text: 'Keluar', style: 'destructive', onPress: doLogout },

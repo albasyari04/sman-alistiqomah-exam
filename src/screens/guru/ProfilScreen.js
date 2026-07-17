@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, Platform } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { useAuth } from '../../context/AuthContext'
@@ -124,7 +124,7 @@ const MENU_ITEMS = [
 ]
 
 export default function ProfilScreen({ navigation }) {
-  const { profile, refreshProfile } = useAuth()
+  const { profile, refreshProfile, setProfile } = useAuth()
   const [uploading, setUploading] = useState(false)
 
   async function handlePickAvatar() {
@@ -159,10 +159,36 @@ export default function ProfilScreen({ navigation }) {
     navigation.navigate(item.route)
   }
 
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  async function doLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      const { error } = await signOut()
+      if (error) {
+        setLoggingOut(false)
+        Alert.alert('Gagal Keluar', error.message || 'Terjadi kesalahan saat mencoba keluar.')
+        return
+      }
+      setProfile(null)
+    } catch (err) {
+      setLoggingOut(false)
+      Alert.alert('Gagal Keluar', err?.message || 'Terjadi kesalahan tak terduga.')
+    }
+  }
+
   function handleLogout() {
+    if (Platform.OS === 'web') {
+      // Alert.alert tidak menampilkan dialog apapun di web (react-native-web),
+      // jadi gunakan window.confirm sebagai gantinya khusus untuk platform web.
+      const confirmed = window.confirm('Yakin ingin keluar dari akun Anda?')
+      if (confirmed) doLogout()
+      return
+    }
     Alert.alert('Keluar', 'Yakin ingin keluar dari akun Anda?', [
       { text: 'Batal', style: 'cancel' },
-      { text: 'Keluar', style: 'destructive', onPress: signOut },
+      { text: 'Keluar', style: 'destructive', onPress: doLogout },
     ])
   }
 
@@ -216,12 +242,12 @@ export default function ProfilScreen({ navigation }) {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.logoutCard} onPress={handleLogout}>
+        <TouchableOpacity style={styles.logoutCard} onPress={handleLogout} disabled={loggingOut}>
           <View style={styles.logoutIconWrap}>
-            <LogoutIcon />
+            {loggingOut ? <ActivityIndicator size="small" color="#E53935" /> : <LogoutIcon />}
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.logoutTitle}>Keluar</Text>
+            <Text style={styles.logoutTitle}>{loggingOut ? 'Sedang keluar...' : 'Keluar'}</Text>
             <Text style={styles.logoutDesc}>Keluar dari akun Anda dengan aman</Text>
           </View>
           <ChevronRight color="#E53935" />
