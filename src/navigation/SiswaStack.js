@@ -1,4 +1,4 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { createStackNavigator } from '@react-navigation/stack'
 import DashboardSiswa from '../screens/siswa/DashboardSiswa'
 import NotifikasiSiswa from '../screens/siswa/NotifikasiSiswa'
 import DaftarUjianSiswa from '../screens/siswa/DaftarUjianSiswa'
@@ -13,7 +13,7 @@ import PusatBantuanSiswa from '../screens/siswa/PusatBantuanSiswa'
 import TentangAplikasiSiswa from '../screens/siswa/TentangAplikasiSiswa'
 import PreferensiTampilanSiswa from '../screens/siswa/PreferensiTampilanSiswa'
 
-const Stack = createNativeStackNavigator()
+const Stack = createStackNavigator()
 
 export default function SiswaStack() {
   return (

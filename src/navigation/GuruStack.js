@@ -1,4 +1,4 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { createStackNavigator } from '@react-navigation/stack'
 import DashboardGuru from '../screens/guru/DashboardGuru'
 import BuatUjianScreen from '../screens/guru/BuatUjianScreen'
 import DaftarUjianGuru from '../screens/guru/DaftarUjianGuru'
@@ -19,7 +19,7 @@ import PreferensiTampilanScreen from '../screens/guru/PreferensiTampilanScreen'
 import PusatBantuanScreen from '../screens/guru/PusatBantuanScreen'
 import TentangAplikasiScreen from '../screens/guru/TentangAplikasiScreen'
 
-const Stack = createNativeStackNavigator()
+const Stack = createStackNavigator()
 
 export default function GuruStack() {
   return (
