@@ -8,6 +8,8 @@ import LoadingScreen from '../components/LoadingScreen'
 export default function RootNavigator() {
   const { session, profile, loading } = useAuth()
 
+  console.log('[RootNavigator] render', { loading, hasSession: !!session, hasProfile: !!profile })
+
   if (loading) {
     return <LoadingScreen />
   }
