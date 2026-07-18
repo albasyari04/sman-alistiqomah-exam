@@ -9,16 +9,37 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        fetchProfile(session.user.id)
-      } else {
-        setLoading(false)
+    let mounted = true
+
+    async function init() {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+
+        if (error) {
+          console.log('Gagal ambil session:', error.message)
+        }
+
+        if (!mounted) return
+
+        const currentSession = data?.session ?? null
+        setSession(currentSession)
+
+        if (currentSession) {
+          await fetchProfile(currentSession.user.id)
+        } else {
+          setLoading(false)
+        }
+      } catch (err) {
+        // Menangkap error jaringan/CORS/dsb supaya app tidak macet di loading
+        console.log('Error saat inisialisasi auth:', err?.message || err)
+        if (mounted) setLoading(false)
       }
-    })
+    }
+
+    init()
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
       setSession(session)
       if (session) {
         fetchProfile(session.user.id)
@@ -29,23 +50,32 @@ export function AuthProvider({ children }) {
     })
 
     return () => {
+      mounted = false
       listener.subscription.unsubscribe()
     }
   }, [])
 
   async function fetchProfile(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-    if (!error) {
-      setProfile(data)
-    } else {
-      console.log('Gagal ambil profile:', error.message)
+      if (!error) {
+        setProfile(data)
+      } else {
+        console.log('Gagal ambil profile:', error.message)
+        setProfile(null)
+      }
+    } catch (err) {
+      // Menangkap error jaringan/CORS/RLS dsb supaya loading tidak macet selamanya
+      console.log('Error tak terduga saat ambil profile:', err?.message || err)
+      setProfile(null)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   // Dipanggil setelah update profile/avatar/notifikasi/dark-mode dsb,
