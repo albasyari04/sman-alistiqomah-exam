@@ -20,6 +20,26 @@
         background-color: #0E3D2B;
       }
     </style>
+
+    <script>
+      // Defensif: hapus service worker & cache lama dari deploy sebelumnya
+      // yang bisa bikin app "nyangkut" di versi HTML/JS yang tidak sinkron
+      // (gejala: sempat render sebentar lalu balik blank/splash).
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          for (var registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (names) {
+          for (var name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+    </script>
   </head>
   <body>
     <noscript>Kamu perlu mengaktifkan JavaScript untuk menjalankan aplikasi ini.</noscript>
