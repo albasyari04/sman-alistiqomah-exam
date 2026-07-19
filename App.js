@@ -1,14 +1,13 @@
 import 'react-native-gesture-handler'
 import { useCallback, useEffect, useState } from 'react'
 import { View, Image, StyleSheet, Platform } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import * as SplashScreen from 'expo-splash-screen'
 import { AuthProvider } from './src/context/AuthContext'
 import { SettingsProvider } from './src/context/SettingsContext'
 import RootNavigator from './src/navigation/RootNavigator'
 
 // Cegah splash bawaan hilang otomatis sebelum kita siap
-// (dibungkus try/catch juga, bukan cuma .catch, karena di web pemanggilan
-// method native yang belum didukung kadang throw sinkron, bukan promise reject)
 try {
   SplashScreen.preventAutoHideAsync().catch(() => {})
 } catch (e) {
@@ -33,13 +32,10 @@ export default function App() {
         setAppReady(true)
         console.log('[App] appReady = true')
 
-        // Sembunyikan splash screen LANGSUNG di sini, tidak bergantung
-        // pada event onLayout (yang tidak selalu reliable di react-native-web).
         try {
           await SplashScreen.hideAsync()
           console.log('[App] SplashScreen.hideAsync() sukses')
         } catch (e) {
-          // Wajar gagal/no-op di web — cukup diabaikan
           console.log('[App] SplashScreen.hideAsync() gagal (diabaikan):', e?.message || e)
         }
       }
@@ -53,30 +49,38 @@ export default function App() {
   }, [])
 
   const onLayoutRootView = useCallback(() => {
-    // Sekarang cuma logging, bukan satu-satunya jalan untuk hide splash.
     console.log('[App] onLayoutRootView terpanggil')
   }, [])
 
   if (!appReady) {
     return (
-      <View style={styles.splash}>
-        <Image
-          source={require('./assets/icon.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
+      // GestureHandlerRootView tetap membungkus splash juga, supaya
+      // konsisten dan siap begitu appReady true tanpa remount ekstra.
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={styles.splash}>
+          <Image
+            source={require('./assets/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+      </GestureHandlerRootView>
     )
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <AuthProvider>
-        <SettingsProvider>
-          <RootNavigator />
-        </SettingsProvider>
-      </AuthProvider>
-    </View>
+    // WAJIB: react-navigation/stack butuh GestureHandlerRootView membungkus
+    // seluruh app, kalau tidak, screen di dalam Stack Navigator bisa
+    // ke-render dengan height: 0 khususnya di web.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <AuthProvider>
+          <SettingsProvider>
+            <RootNavigator />
+          </SettingsProvider>
+        </AuthProvider>
+      </View>
+    </GestureHandlerRootView>
   )
 }
 
