@@ -19,7 +19,57 @@
         padding: 0;
         background-color: #0E3D2B;
       }
+      #debug-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        max-height: 60%;
+        overflow-y: auto;
+        background: rgba(0,0,0,0.92);
+        color: #ff5c5c;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 10px;
+        z-index: 999999;
+        white-space: pre-wrap;
+        word-break: break-word;
+        display: none;
+      }
+      #debug-overlay.show { display: block; }
+      #debug-overlay .entry { border-bottom: 1px solid #444; padding: 6px 0; }
+      #debug-overlay .label { color: #7fdcff; }
     </style>
+
+    <!-- SEMENTARA UNTUK DEBUG: tampilkan error JS langsung di layar -->
+    <script>
+      (function () {
+        var overlay = document.createElement('div');
+        overlay.id = 'debug-overlay';
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.appendChild(overlay);
+        });
+
+        function addEntry(label, msg) {
+          overlay.classList.add('show');
+          var el = document.createElement('div');
+          el.className = 'entry';
+          el.innerHTML = '<div class="label">' + label + '</div><div>' + msg + '</div>';
+          overlay.appendChild(el);
+        }
+
+        window.addEventListener('error', function (e) {
+          addEntry('window.error', (e.message || 'unknown') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || '') + '\n' + (e.error && e.error.stack ? e.error.stack : ''));
+        });
+
+        window.addEventListener('unhandledrejection', function (e) {
+          var reason = e.reason;
+          var msg = (reason && reason.message) ? reason.message : String(reason);
+          var stack = (reason && reason.stack) ? reason.stack : '';
+          addEntry('unhandledrejection', msg + '\n' + stack);
+        });
+      })();
+    </script>
 
     <script>
       // Defensif: hapus service worker & cache lama dari deploy sebelumnya
