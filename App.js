@@ -1,11 +1,26 @@
 import 'react-native-gesture-handler'
 import { useCallback, useEffect, useState } from 'react'
 import { View, Image, StyleSheet, Platform } from 'react-native'
+import { enableScreens } from 'react-native-screens'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import * as SplashScreen from 'expo-splash-screen'
 import { AuthProvider } from './src/context/AuthContext'
 import { SettingsProvider } from './src/context/SettingsContext'
 import RootNavigator from './src/navigation/RootNavigator'
+
+// PENTING: react-native-screens (dipakai oleh @react-navigation/native-stack)
+// punya bug lama di web: screen yang aktif bisa ter-render dengan tinggi 0 /
+// tidak terlihat sama sekali, walau secara logic React sudah benar (tidak ada
+// error, komponen ter-mount). Ini persis gejala yang kita alami: RootNavigator
+// sudah render AuthStack (Login), tidak ada error di console, tapi layar
+// tetap blank hijau polos.
+// Solusinya: matikan optimisasi native-screens KHUSUS di web, supaya
+// navigator fallback ke View biasa (bukan native UIViewController/Fragment
+// yang di-emulasikan react-native-screens). Native (Android/iOS) tetap pakai
+// react-native-screens seperti biasa demi performa, tidak terpengaruh.
+if (Platform.OS === 'web') {
+  enableScreens(false)
+}
 
 // Cegah splash bawaan hilang otomatis sebelum kita siap
 try {
