@@ -37,7 +37,7 @@
     ],
     "extra": {
       "supabaseUrl": "https://ksgllzipeeyjqhoypodu.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ2xsemlwZWV5anFob3lwb2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4NDIwMzcsImV4cCI6MjA5OTQxODAzN30.IxeqTKkoIFDhYBfGLQQQeZsQb-5iyuVnkylTnHCIFJU"
     }
   }
 }

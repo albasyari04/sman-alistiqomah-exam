@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true
     let initTimeout = null
+    let settled = false // menandai init() sudah selesai (sukses/gagal), supaya timeout tidak perlu lagi
 
     async function init() {
       console.log('[Auth] init started')
@@ -36,14 +37,19 @@ export function AuthProvider({ children }) {
         // Menangkap error jaringan/CORS/dsb supaya app tidak macet di loading
         console.log('[Auth] Error saat inisialisasi auth:', err?.message || err)
         if (mounted) setLoading(false)
+      } finally {
+        settled = true
+        if (initTimeout) clearTimeout(initTimeout)
       }
     }
 
     init()
 
-    // safety: jika setelah beberapa detik masih loading, hentikan agar UI tidak macet
+    // safety: jika setelah beberapa detik init() belum selesai sama sekali
+    // (misal request gantung tanpa throw), hentikan loading agar UI tidak macet.
+    // `settled` dicek langsung (bukan state `loading`) supaya tidak kena stale closure.
     initTimeout = setTimeout(() => {
-      if (mounted && loading) {
+      if (mounted && !settled) {
         console.log('[Auth] init timeout, forcing loading=false')
         setLoading(false)
       }
