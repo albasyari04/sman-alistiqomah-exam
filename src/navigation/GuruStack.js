@@ -23,7 +23,7 @@ const Stack = createNativeStackNavigator()
 
 export default function GuruStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ contentStyle: { flex: 1, height: '100%' } }}>
       <Stack.Screen name="DashboardGuru" component={DashboardGuru} options={{ headerShown: false }} />
       <Stack.Screen name="BuatUjian" component={BuatUjianScreen} options={{ title: 'Buat Ujian' }} />
       <Stack.Screen name="DaftarUjianGuru" component={DaftarUjianGuru} options={{ title: 'Daftar Ujian' }} />

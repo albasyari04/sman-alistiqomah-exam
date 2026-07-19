@@ -17,7 +17,7 @@ const Stack = createNativeStackNavigator()
 
 export default function SiswaStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ contentStyle: { flex: 1, height: '100%' } }}>
       <Stack.Screen name="DashboardSiswa" component={DashboardSiswa} options={{ headerShown: false }} />
       <Stack.Screen name="NotifikasiSiswa" component={NotifikasiSiswa} options={{ headerShown: false }} />
       <Stack.Screen name="DaftarUjianSiswa" component={DaftarUjianSiswa} options={{ title: 'Daftar Ujian' }} />
