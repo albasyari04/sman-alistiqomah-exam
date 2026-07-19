@@ -1,3 +1,5 @@
+import { Platform } from 'react-native'
+import { createStackNavigator } from '@react-navigation/stack'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import DashboardSiswa from '../screens/siswa/DashboardSiswa'
 import NotifikasiSiswa from '../screens/siswa/NotifikasiSiswa'
@@ -13,11 +15,16 @@ import PusatBantuanSiswa from '../screens/siswa/PusatBantuanSiswa'
 import TentangAplikasiSiswa from '../screens/siswa/TentangAplikasiSiswa'
 import PreferensiTampilanSiswa from '../screens/siswa/PreferensiTampilanSiswa'
 
-const Stack = createNativeStackNavigator()
+const Stack = Platform.OS === 'web' ? createStackNavigator() : createNativeStackNavigator()
 
 export default function SiswaStack() {
   return (
-    <Stack.Navigator screenOptions={{ contentStyle: { flex: 1, height: '100%' } }}>
+    <Stack.Navigator
+      screenOptions={{
+        contentStyle: { flex: 1, height: '100%' },
+        cardStyle: { flex: 1, backgroundColor: '#fff' },
+      }}
+    >
       <Stack.Screen name="DashboardSiswa" component={DashboardSiswa} options={{ headerShown: false }} />
       <Stack.Screen name="NotifikasiSiswa" component={NotifikasiSiswa} options={{ headerShown: false }} />
       <Stack.Screen name="DaftarUjianSiswa" component={DaftarUjianSiswa} options={{ title: 'Daftar Ujian' }} />

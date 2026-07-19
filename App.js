@@ -27,18 +27,20 @@ export default function App() {
     let cancelled = false
 
     async function prepare() {
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 800))
-      } catch (e) {
-        console.log('[App] prepare() error:', e?.message || e)
-      } finally {
-        if (cancelled) return
-        setAppReady(true)
+      if (Platform.OS !== 'web') {
         try {
-          await SplashScreen.hideAsync()
+          await new Promise((resolve) => setTimeout(resolve, 800))
         } catch (e) {
-          console.log('[App] SplashScreen.hideAsync() gagal (diabaikan):', e?.message || e)
+          console.log('[App] prepare() error:', e?.message || e)
         }
+      }
+
+      if (cancelled) return
+      setAppReady(true)
+      try {
+        await SplashScreen.hideAsync()
+      } catch (e) {
+        console.log('[App] SplashScreen.hideAsync() gagal (diabaikan):', e?.message || e)
       }
     }
 
@@ -68,7 +70,7 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <View style={{ flex: 1, minHeight: '100%' }} onLayout={onLayoutRootView}>
         <AuthProvider>
           <SettingsProvider>
             <RootNavigator />

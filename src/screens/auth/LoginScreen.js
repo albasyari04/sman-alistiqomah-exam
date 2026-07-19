@@ -78,10 +78,14 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F7F5F0' }}
+      style={{ flex: 1, minHeight: '100%', backgroundColor: '#F7F5F0' }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ flex: 1, width: '100%' }}
+        contentContainerStyle={[styles.container, { flexGrow: 1 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
 
         <Text style={styles.title}>SMA Al Istiqomah</Text>

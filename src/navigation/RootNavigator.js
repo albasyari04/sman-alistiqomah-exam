@@ -1,3 +1,4 @@
+import { Platform, View } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { useAuth } from '../context/AuthContext'
 import AuthStack from './AuthStack'
@@ -9,7 +10,7 @@ import { useEffect, useState } from 'react'
 export default function RootNavigator() {
   const { session, profile, loading } = useAuth()
 
-  console.log('[RootNavigator] render', { loading, hasSession: !!session, hasProfile: !!profile })
+  console.log('[RootNavigator] render', { loading, hasSession: !!session, hasProfile: !!profile, platform: Platform.OS })
 
   // Jika loading macet terlalu lama, fallback ke AuthStack supaya user tetap bisa login
   const [fallbackAuth, setFallbackAuth] = useState(false)
@@ -33,13 +34,15 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {!session || !profile ? (
-        <AuthStack />
-      ) : profile.role === 'guru' || profile.role === 'admin' ? (
-        <GuruStack />
-      ) : (
-        <SiswaStack />
-      )}
+      <View style={{ flex: 1, minHeight: '100vh' }}>
+        {!session || !profile ? (
+          <AuthStack />
+        ) : profile.role === 'guru' || profile.role === 'admin' ? (
+          <GuruStack />
+        ) : (
+          <SiswaStack />
+        )}
+      </View>
     </NavigationContainer>
   )
 }

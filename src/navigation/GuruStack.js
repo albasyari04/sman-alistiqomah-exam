@@ -1,3 +1,5 @@
+import { Platform } from 'react-native'
+import { createStackNavigator } from '@react-navigation/stack'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import DashboardGuru from '../screens/guru/DashboardGuru'
 import BuatUjianScreen from '../screens/guru/BuatUjianScreen'
@@ -19,11 +21,16 @@ import PreferensiTampilanScreen from '../screens/guru/PreferensiTampilanScreen'
 import PusatBantuanScreen from '../screens/guru/PusatBantuanScreen'
 import TentangAplikasiScreen from '../screens/guru/TentangAplikasiScreen'
 
-const Stack = createNativeStackNavigator()
+const Stack = Platform.OS === 'web' ? createStackNavigator() : createNativeStackNavigator()
 
 export default function GuruStack() {
   return (
-    <Stack.Navigator screenOptions={{ contentStyle: { flex: 1, height: '100%' } }}>
+    <Stack.Navigator
+      screenOptions={{
+        contentStyle: { flex: 1, height: '100%' },
+        cardStyle: { flex: 1, backgroundColor: '#fff' },
+      }}
+    >
       <Stack.Screen name="DashboardGuru" component={DashboardGuru} options={{ headerShown: false }} />
       <Stack.Screen name="BuatUjian" component={BuatUjianScreen} options={{ title: 'Buat Ujian' }} />
       <Stack.Screen name="DaftarUjianGuru" component={DaftarUjianGuru} options={{ title: 'Daftar Ujian' }} />
