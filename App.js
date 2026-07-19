@@ -1,34 +1,61 @@
 import 'react-native-gesture-handler'
 import { useCallback, useEffect, useState } from 'react'
-import { View, Image, StyleSheet } from 'react-native'
+import { View, Image, StyleSheet, Platform } from 'react-native'
 import * as SplashScreen from 'expo-splash-screen'
 import { AuthProvider } from './src/context/AuthContext'
 import { SettingsProvider } from './src/context/SettingsContext'
 import RootNavigator from './src/navigation/RootNavigator'
 
 // Cegah splash bawaan hilang otomatis sebelum kita siap
-SplashScreen.preventAutoHideAsync().catch(() => {})
+// (dibungkus try/catch juga, bukan cuma .catch, karena di web pemanggilan
+// method native yang belum didukung kadang throw sinkron, bukan promise reject)
+try {
+  SplashScreen.preventAutoHideAsync().catch(() => {})
+} catch (e) {
+  console.log('[App] preventAutoHideAsync gagal (diabaikan):', e?.message || e)
+}
 
 export default function App() {
   const [appReady, setAppReady] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+
     async function prepare() {
+      console.log('[App] prepare() mulai, platform =', Platform.OS)
       try {
-        // taruh proses loading awal di sini kalau ada (cek sesi login, load font, dll)
         await new Promise((resolve) => setTimeout(resolve, 800))
+        console.log('[App] prepare() selesai delay')
+      } catch (e) {
+        console.log('[App] prepare() error:', e?.message || e)
       } finally {
+        if (cancelled) return
         setAppReady(true)
+        console.log('[App] appReady = true')
+
+        // Sembunyikan splash screen LANGSUNG di sini, tidak bergantung
+        // pada event onLayout (yang tidak selalu reliable di react-native-web).
+        try {
+          await SplashScreen.hideAsync()
+          console.log('[App] SplashScreen.hideAsync() sukses')
+        } catch (e) {
+          // Wajar gagal/no-op di web — cukup diabaikan
+          console.log('[App] SplashScreen.hideAsync() gagal (diabaikan):', e?.message || e)
+        }
       }
     }
+
     prepare()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const onLayoutRootView = useCallback(async () => {
-    if (appReady) {
-      await SplashScreen.hideAsync()
-    }
-  }, [appReady])
+  const onLayoutRootView = useCallback(() => {
+    // Sekarang cuma logging, bukan satu-satunya jalan untuk hide splash.
+    console.log('[App] onLayoutRootView terpanggil')
+  }, [])
 
   if (!appReady) {
     return (
