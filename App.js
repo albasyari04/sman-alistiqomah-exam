@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler'
 import { useCallback, useEffect, useState } from 'react'
-import { View, Image, StyleSheet, Platform } from 'react-native'
+import { View, Text, Image, StyleSheet, Platform, ActivityIndicator } from 'react-native'
 import { enableScreens } from 'react-native-screens'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import * as SplashScreen from 'expo-splash-screen'
@@ -63,6 +63,8 @@ export default function App() {
             style={styles.logo}
             resizeMode="contain"
           />
+          <Text style={styles.versionBadge}>v1.0.0</Text>
+          <ActivityIndicator size="large" color="#ffffff" style={styles.splashIndicator} />
         </View>
       </GestureHandlerRootView>
     )
@@ -93,4 +95,17 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 44,
   },
+  versionBadge: {
+    marginTop: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  splashIndicator: {
+    marginTop: 22,
+  }
 })
