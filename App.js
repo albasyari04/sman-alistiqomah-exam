@@ -8,16 +8,7 @@ import { AuthProvider } from './src/context/AuthContext'
 import { SettingsProvider } from './src/context/SettingsContext'
 import RootNavigator from './src/navigation/RootNavigator'
 
-// PENTING: react-native-screens (dipakai oleh @react-navigation/native-stack)
-// punya bug lama di web: screen yang aktif bisa ter-render dengan tinggi 0 /
-// tidak terlihat sama sekali, walau secara logic React sudah benar (tidak ada
-// error, komponen ter-mount). Ini persis gejala yang kita alami: RootNavigator
-// sudah render AuthStack (Login), tidak ada error di console, tapi layar
-// tetap blank hijau polos.
-// Solusinya: matikan optimisasi native-screens KHUSUS di web, supaya
-// navigator fallback ke View biasa (bukan native UIViewController/Fragment
-// yang di-emulasikan react-native-screens). Native (Android/iOS) tetap pakai
-// react-native-screens seperti biasa demi performa, tidak terpengaruh.
+// Matikan optimisasi react-native-screens khusus di web
 if (Platform.OS === 'web') {
   enableScreens(false)
 }
@@ -36,20 +27,15 @@ export default function App() {
     let cancelled = false
 
     async function prepare() {
-      console.log('[App] prepare() mulai, platform =', Platform.OS)
       try {
         await new Promise((resolve) => setTimeout(resolve, 800))
-        console.log('[App] prepare() selesai delay')
       } catch (e) {
         console.log('[App] prepare() error:', e?.message || e)
       } finally {
         if (cancelled) return
         setAppReady(true)
-        console.log('[App] appReady = true')
-
         try {
           await SplashScreen.hideAsync()
-          console.log('[App] SplashScreen.hideAsync() sukses')
         } catch (e) {
           console.log('[App] SplashScreen.hideAsync() gagal (diabaikan):', e?.message || e)
         }
@@ -57,7 +43,6 @@ export default function App() {
     }
 
     prepare()
-
     return () => {
       cancelled = true
     }
@@ -69,8 +54,6 @@ export default function App() {
 
   if (!appReady) {
     return (
-      // GestureHandlerRootView tetap membungkus splash juga, supaya
-      // konsisten dan siap begitu appReady true tanpa remount ekstra.
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.splash}>
           <Image
@@ -84,9 +67,6 @@ export default function App() {
   }
 
   return (
-    // WAJIB: react-navigation/stack butuh GestureHandlerRootView membungkus
-    // seluruh app, kalau tidak, screen di dalam Stack Navigator bisa
-    // ke-render dengan height: 0 khususnya di web.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <AuthProvider>
