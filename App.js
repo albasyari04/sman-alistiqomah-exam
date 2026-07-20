@@ -79,12 +79,10 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.splash}>
           {/* Badge versi - pojok kanan atas, seperti "V5.7 (70)" di referensi */}
-          <View style={styles.topRow}>
-            <Text style={styles.versionBadge}>v{APP_VERSION}</Text>
-          </View>
+          <Text style={styles.versionBadge}>v{APP_VERSION}</Text>
 
-          {/* Logo + nama app - tengah layar */}
-          <View style={styles.centerContent}>
+          {/* Logo + nama app - benar-benar di tengah layar (absolute, tidak terpengaruh elemen lain) */}
+          <View style={styles.centerContent} pointerEvents="none">
             <Image
               source={require('./assets/icon.png')}
               style={styles.logo}
@@ -93,7 +91,7 @@ export default function App() {
             <Text style={styles.appName}>{APP_NAME}</Text>
           </View>
 
-          {/* Teks status + progress bar - bawah layar */}
+          {/* Teks status + progress bar - menempel di dasar layar */}
           <View style={styles.bottomContent}>
             <Text style={styles.loadingText}>Memuat konfigurasi...</Text>
             <View style={styles.progressTrack}>
@@ -131,22 +129,24 @@ export default function App() {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
+    minHeight: '100%',
     backgroundColor: '#0E3D2B',
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-  },
-  topRow: {
-    alignItems: 'flex-end',
   },
   versionBadge: {
+    position: 'absolute',
+    top: 40,
+    right: 24,
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.4,
   },
   centerContent: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -163,6 +163,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   bottomContent: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 48,
     alignItems: 'center',
   },
   loadingText: {
@@ -171,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressTrack: {
-    width: '80%',
+    width: '100%',
     height: 4,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.15)',

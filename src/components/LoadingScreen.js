@@ -20,7 +20,7 @@ export default function LoadingScreen({ label = 'Memuat konfigurasi...' }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.centerContent}>
+      <View style={styles.centerContent} pointerEvents="none">
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.appName}>Ujian Mobile</Text>
       </View>
@@ -48,14 +48,15 @@ export default function LoadingScreen({ label = 'Memuat konfigurasi...' }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    minHeight: '100%',
     backgroundColor: '#0E3D2B',
-    paddingVertical: 60,
-    paddingHorizontal: 24,
   },
   centerContent: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -67,7 +68,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   bottomContent: {
-    width: '100%',
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 48,
     alignItems: 'center',
   },
   loadingText: {
@@ -76,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressTrack: {
-    width: '80%',
+    width: '100%',
     height: 4,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.15)',
