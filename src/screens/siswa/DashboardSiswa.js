@@ -9,6 +9,7 @@ import {
   ImageBackground,
   ActivityIndicator,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Path, Circle } from 'react-native-svg'
@@ -165,8 +166,43 @@ const PENGUMUMAN_CATEGORY_META = {
   libur: { icon: IconMegaphone, bg: '#E1F6E8', color: '#1FAE5C' },
 }
 
+// ---------- Responsive helpers ----------
+// Breakpoint sederhana: mobile (<768), tablet (768-1023), desktop (>=1024)
+function getBreakpoint(width) {
+  if (width >= 1024) return 'desktop'
+  if (width >= 768) return 'tablet'
+  return 'mobile'
+}
+
+function MenuItem({ item, style, onPress }) {
+  return (
+    <TouchableOpacity style={style} activeOpacity={0.7} onPress={onPress}>
+      <View style={styles.menuIconWrap}>
+        <Image source={item.icon} style={styles.menuIconImg} resizeMode="contain" />
+      </View>
+      <Text style={styles.menuLabel} numberOfLines={1}>{item.label}</Text>
+      <Text style={styles.menuDesc} numberOfLines={1}>{item.desc}</Text>
+    </TouchableOpacity>
+  )
+}
+
 export default function DashboardSiswa({ navigation }) {
   const { profile } = useAuth()
+  const { width: screenWidth } = useWindowDimensions()
+  const breakpoint = getBreakpoint(screenWidth)
+  const isTablet = breakpoint !== 'mobile'
+  const isDesktop = breakpoint === 'desktop'
+
+  // Lebar konten dibatasi & ditengahkan di layar lebar, supaya tidak "molor"
+  // penuh ke tepi browser seperti di tampilan desktop saat ini.
+  const contentMaxWidth = isDesktop ? 960 : isTablet ? 720 : undefined
+  const containerResponsiveStyle = contentMaxWidth
+    ? { width: '100%', maxWidth: contentMaxWidth, alignSelf: 'center' }
+    : null
+
+  // Statistik: 2 kolom di mobile, 4 kolom sejajar di tablet/desktop
+  const statColumns = isTablet ? 4 : 2
+  const statCardWidthPct = statColumns === 4 ? '23.5%' : '48.5%'
   const [avatarError, setAvatarError] = useState(false)
   const [exams, setExams] = useState([])
   const [results, setResults] = useState([])
@@ -243,7 +279,7 @@ export default function DashboardSiswa({ navigation }) {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header */}
       <View style={styles.headerSection}>
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, containerResponsiveStyle]}>
           <View>
             <Text style={styles.greeting}>Halo, {profile?.full_name || 'Siswa'}</Text>
             <Text style={styles.subtitle}>
@@ -283,7 +319,7 @@ export default function DashboardSiswa({ navigation }) {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, containerResponsiveStyle]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2F6FED']} />}
       >
@@ -305,7 +341,7 @@ export default function DashboardSiswa({ navigation }) {
         {/* Stat cards - grid 2x2 */}
         <View style={styles.statsGrid}>
           {STATS.map((s) => (
-            <View key={s.key} style={styles.statCard}>
+            <View key={s.key} style={[styles.statCard, { width: statCardWidthPct }]}>
               <View style={styles.statCardTopRow}>
                 <View style={[styles.statIconWrap, { backgroundColor: s.iconBg }]}>
                   <Image source={s.icon} style={styles.statIconImg} resizeMode="contain" />
@@ -322,27 +358,36 @@ export default function DashboardSiswa({ navigation }) {
         </View>
 
         {/* Menu Utama */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.menuScrollContent}
-          style={styles.menuScroll}
-        >
-          {MENU.map((m) => (
-            <TouchableOpacity
-              key={m.key}
-              style={styles.menuItem}
-              activeOpacity={0.7}
-              onPress={() => m.route && navigation.navigate(m.route)}
-            >
-              <View style={styles.menuIconWrap}>
-                <Image source={m.icon} style={styles.menuIconImg} resizeMode="contain" />
-              </View>
-              <Text style={styles.menuLabel} numberOfLines={1}>{m.label}</Text>
-              <Text style={styles.menuDesc} numberOfLines={1}>{m.desc}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {isTablet ? (
+          // Tablet/Desktop: tampil sebagai grid yang wrap, tidak perlu scroll horizontal
+          <View style={styles.menuGridWrap}>
+            {MENU.map((m) => (
+              <MenuItem
+                key={m.key}
+                item={m}
+                style={styles.menuItemGrid}
+                onPress={() => m.route && navigation.navigate(m.route)}
+              />
+            ))}
+          </View>
+        ) : (
+          // Mobile: tetap scroll horizontal seperti semula
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.menuScrollContent}
+            style={styles.menuScroll}
+          >
+            {MENU.map((m) => (
+              <MenuItem
+                key={m.key}
+                item={m}
+                style={styles.menuItem}
+                onPress={() => m.route && navigation.navigate(m.route)}
+              />
+            ))}
+          </ScrollView>
+        )}
 
         {/* Ujian Berikutnya - Full Width dengan Background Image */}
         <View style={styles.nextExamSection}>
@@ -357,7 +402,7 @@ export default function DashboardSiswa({ navigation }) {
             <View style={styles.examBannerContainer}>
               <ImageBackground
                 source={ICONS.ujianBerikutnyaBanner}
-                style={styles.examBannerBackground}
+                style={[styles.examBannerBackground, isTablet && { height: 240 }]}
                 imageStyle={styles.examBannerImage}
                 resizeMode="contain"
               >
@@ -636,6 +681,26 @@ const styles = StyleSheet.create({
   menuIconImg: { width: 32, height: 32 },
   menuLabel: { fontSize: 11.5, fontWeight: '700', color: COLOR_TEXT, textAlign: 'center' },
   menuDesc: { fontSize: 9, color: COLOR_SUBTEXT, textAlign: 'center', marginTop: 1 },
+
+  // Menu grid untuk tablet/desktop (pengganti scroll horizontal)
+  menuGridWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 12,
+    marginBottom: 20,
+  },
+  menuItemGrid: {
+    width: 108,
+    height: 96,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...CARD_SHADOW,
+  },
 
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLOR_TEXT },
 
