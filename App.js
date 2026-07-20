@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 44,
   },
   appName: {
-    marginTop: 4,
+    marginTop: -12,
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',

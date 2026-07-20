@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: { width: 260, height: 260, marginBottom: 4 },
+  logo: { width: 260, height: 260, marginBottom: -12 },
   appName: {
     color: '#FFFFFF',
     fontSize: 20,
