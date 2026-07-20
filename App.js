@@ -152,12 +152,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 160,
-    height: 160,
-    borderRadius: 32,
+    width: 260,
+    height: 260,
+    borderRadius: 44,
   },
   appName: {
-    marginTop: 20,
+    marginTop: 4,
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '700',
