@@ -7,15 +7,25 @@ import { supabase } from '../lib/supabase'
  * lalu update kolom avatar_url di tabel profiles.
  * Path foto: {userId}/avatar.jpg (upsert, jadi selalu menimpa foto lama)
  */
-export async function uploadAvatar(userId, imageUri) {
+export async function uploadAvatar(userId, imageSource, options = {}) {
   try {
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    })
-    // Decode base64 langsung ke ArrayBuffer (TANPA fetch/Blob).
-    // fetch(dataURI).blob() tidak reliable di React Native untuk file
-    // berukuran besar dan sering gagal dengan "Network request failed".
-    const fileData = decode(base64)
+    let fileData
+
+    if (options.base64 || options.isBase64) {
+      fileData = decode(imageSource)
+    } else if (typeof imageSource === 'string' && imageSource.startsWith('data:')) {
+      const base64 = imageSource.split(',')[1]
+      fileData = decode(base64)
+    } else {
+      const base64 = await FileSystem.readAsStringAsync(imageSource, {
+        encoding: FileSystem.EncodingType.Base64,
+      })
+      // Decode base64 langsung ke ArrayBuffer (TANPA fetch/Blob).
+      // fetch(dataURI).blob() tidak reliable di React Native untuk file
+      // berukuran besar dan sering gagal dengan "Network request failed".
+      fileData = decode(base64)
+    }
+
     const filePath = `${userId}/avatar.jpg`
 
     const { error: uploadError } = await supabase.storage

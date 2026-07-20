@@ -139,12 +139,13 @@ export default function ProfilScreen({ navigation }) {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
+      base64: true,
     })
 
-    if (result.canceled) return
+    if (result.canceled || !result.assets?.[0]?.base64) return
 
     setUploading(true)
-    const { error } = await uploadAvatar(profile.id, result.assets[0].uri)
+    const { error } = await uploadAvatar(profile.id, result.assets[0].base64, { base64: true })
     setUploading(false)
 
     if (error) {

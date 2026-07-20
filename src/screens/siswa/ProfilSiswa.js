@@ -138,13 +138,14 @@ export default function ProfilSiswa({ navigation }) {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
+        base64: true,
       })
 
-      if (result.canceled || !result.assets?.[0]?.uri) return
+      if (result.canceled || !result.assets?.[0]?.base64) return
 
       setAvatarUploading(true)
       setAvatarError(false)
-      const { data, error } = await uploadAvatar(profile.id, result.assets[0].uri)
+      const { data, error } = await uploadAvatar(profile.id, result.assets[0].base64, { base64: true })
       setAvatarUploading(false)
 
       if (error) {
