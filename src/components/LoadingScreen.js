@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native'
+import { View, Text, Image, StyleSheet, Animated, Easing, useWindowDimensions } from 'react-native'
 
 export default function LoadingScreen({ label = 'Memuat konfigurasi...' }) {
   const progressAnim = useRef(new Animated.Value(0)).current
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
 
   useEffect(() => {
     progressAnim.setValue(0)
@@ -19,7 +20,7 @@ export default function LoadingScreen({ label = 'Memuat konfigurasi...' }) {
   }, [])
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { width: screenWidth, height: screenHeight }]}>
       <View style={styles.centerContent} pointerEvents="none">
         <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
         <Text style={styles.appName}>Ujian Mobile</Text>
@@ -47,9 +48,9 @@ export default function LoadingScreen({ label = 'Memuat konfigurasi...' }) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    minHeight: '100%',
+    position: 'relative',
     backgroundColor: '#0E3D2B',
+    overflow: 'hidden',
   },
   centerContent: {
     position: 'absolute',

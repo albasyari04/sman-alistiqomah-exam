@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { View, Text, Image, StyleSheet, Platform, Animated, Easing } from 'react-native'
+import { View, Text, Image, StyleSheet, Platform, Animated, Easing, useWindowDimensions } from 'react-native'
 import { enableScreens } from 'react-native-screens'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import * as SplashScreen from 'expo-splash-screen'
@@ -27,6 +27,7 @@ const SPLASH_DURATION = 3000 // 3 detik
 export default function App() {
   const [appReady, setAppReady] = useState(false)
   const progressAnim = useRef(new Animated.Value(0)).current
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
 
   // Progress bar berjalan sekali dari 0% -> 100% selama SPLASH_DURATION,
   // sinkron dengan delay splash di bawah.
@@ -77,7 +78,7 @@ export default function App() {
   if (!appReady) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={styles.splash}>
+        <View style={[styles.splash, { width: screenWidth, height: screenHeight }]}>
           {/* Badge versi - pojok kanan atas, seperti "V5.7 (70)" di referensi */}
           <Text style={styles.versionBadge}>v{APP_VERSION}</Text>
 
@@ -128,9 +129,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   splash: {
-    flex: 1,
-    minHeight: '100%',
+    position: 'relative',
     backgroundColor: '#0E3D2B',
+    overflow: 'hidden',
   },
   versionBadge: {
     position: 'absolute',
