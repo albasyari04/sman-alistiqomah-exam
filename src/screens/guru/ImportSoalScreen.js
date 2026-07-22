@@ -1,10 +1,47 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native'
 import { useState } from 'react'
 import * as DocumentPicker from 'expo-document-picker'
-import * as FileSystem from 'expo-file-system/legacy'
 import Papa from 'papaparse'
 import { addQuestionsBulk } from '../../services/questionService'
 import { parseDocxToQuestions } from '../../services/docxImportService'
+
+// FileSystem (expo-file-system) TIDAK didukung di platform web ("is not available on web").
+// Import lazy hanya dipakai kalau bukan web, supaya tidak error saat bundling/berjalan di web.
+let FileSystem = null
+if (Platform.OS !== 'web') {
+  FileSystem = require('expo-file-system/legacy')
+}
+
+// Baca isi file sebagai TEKS biasa (untuk CSV), platform-aware.
+async function readAssetAsText(asset) {
+  if (Platform.OS === 'web') {
+    // Di web, expo-document-picker menyertakan `file` (browser File/Blob) di setiap asset.
+    if (!asset.file) throw new Error('Tidak bisa membaca file di browser ini.')
+    return await asset.file.text()
+  }
+  return await FileSystem.readAsStringAsync(asset.uri)
+}
+
+// Baca isi file sebagai BASE64 (untuk DOCX), platform-aware.
+async function readAssetAsBase64(asset) {
+  if (Platform.OS === 'web') {
+    if (!asset.file) throw new Error('Tidak bisa membaca file di browser ini.')
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        // reader.result berformat "data:<mime>;base64,<DATA>"
+        const result = reader.result || ''
+        const base64 = result.includes(',') ? result.split(',')[1] : result
+        resolve(base64)
+      }
+      reader.onerror = () => reject(new Error('Gagal membaca file di browser.'))
+      reader.readAsDataURL(asset.file)
+    })
+  }
+  return await FileSystem.readAsStringAsync(asset.uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  })
+}
 
 export default function ImportSoalScreen({ route, navigation }) {
   const { examId } = route.params
@@ -14,32 +51,43 @@ export default function ImportSoalScreen({ route, navigation }) {
     const result = await DocumentPicker.getDocumentAsync({ type: 'text/csv' })
     if (result.canceled) return
 
-    const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri)
+    setLoading(true)
+    try {
+      const fileContent = await readAssetAsText(result.assets[0])
 
-    Papa.parse(fileContent, {
-      header: true,
-      complete: async (parsed) => {
-        const questions = parsed.data
-          .filter((row) => row.question)
-          .map((row) => ({
-            text: row.question,
-            a: row.option_a,
-            b: row.option_b,
-            c: row.option_c,
-            d: row.option_d,
-            e: row.option_e || '',
-            correct: row.correct?.toLowerCase(),
-          }))
+      Papa.parse(fileContent, {
+        header: true,
+        complete: async (parsed) => {
+          const questions = parsed.data
+            .filter((row) => row.question)
+            .map((row) => ({
+              text: row.question,
+              a: row.option_a,
+              b: row.option_b,
+              c: row.option_c,
+              d: row.option_d,
+              e: row.option_e || '',
+              correct: row.correct?.toLowerCase(),
+            }))
 
-        const { error } = await addQuestionsBulk(examId, questions)
-        if (error) {
-          Alert.alert('Gagal Import', error.message)
-        } else {
-          Alert.alert('Berhasil', `${questions.length} soal berhasil diimport`)
-          navigation.navigate('DaftarUjianGuru')
-        }
-      },
-    })
+          const { error } = await addQuestionsBulk(examId, questions)
+          setLoading(false)
+          if (error) {
+            Alert.alert('Gagal Import', error.message)
+          } else {
+            Alert.alert('Berhasil', `${questions.length} soal berhasil diimport`)
+            navigation.navigate('DaftarUjianGuru')
+          }
+        },
+        error: (err) => {
+          setLoading(false)
+          Alert.alert('Gagal Membaca CSV', err.message)
+        },
+      })
+    } catch (err) {
+      setLoading(false)
+      Alert.alert('Gagal Membaca File', err.message)
+    }
   }
 
   async function pickAndImportDocx() {
@@ -50,13 +98,14 @@ export default function ImportSoalScreen({ route, navigation }) {
 
     setLoading(true)
     try {
-      const questions = await parseDocxToQuestions(result.assets[0].uri)
+      const base64 = await readAssetAsBase64(result.assets[0])
+      const questions = await parseDocxToQuestions(base64)
       setLoading(false)
 
       if (questions.length === 0) {
         Alert.alert(
           'Tidak Ditemukan Soal',
-          'Setiap soal perlu diawali angka (contoh: "1."). Pilihan jawaban (a. b. c. ...) boleh dikosongkan dulu, nanti bisa dilengkapi di layar berikutnya.'
+          'Setiap soal perlu diawali angka (contoh: "1."), atau memakai fitur Numbering bawaan Word. Pilihan jawaban (a. b. c. ...) boleh dikosongkan dulu, nanti bisa dilengkapi di layar berikutnya.'
         )
         return
       }
@@ -73,14 +122,14 @@ export default function ImportSoalScreen({ route, navigation }) {
       <Text style={styles.desc}>
         Format CSV: question, option_a, option_b, option_c, option_d, option_e (opsional), correct
       </Text>
-      <TouchableOpacity style={styles.button} onPress={pickAndImportCsv}>
-        <Text style={styles.buttonText}>Pilih File CSV</Text>
+      <TouchableOpacity style={styles.button} onPress={pickAndImportCsv} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Pilih File CSV</Text>}
       </TouchableOpacity>
 
       <View style={{ height: 16 }} />
 
       <Text style={styles.desc}>
-        Import dari Word (.docx): setiap soal diawali angka (contoh "1."). Pilihan jawaban A-E boleh belum ada di file — bisa dilengkapi manual di layar berikutnya.
+        Import dari Word (.docx): setiap soal diawali angka (contoh "1.") atau memakai Numbering Word. Pilihan jawaban A-E boleh belum ada di file — bisa dilengkapi manual di layar berikutnya.
       </Text>
       <TouchableOpacity style={[styles.button, styles.docxButton]} onPress={pickAndImportDocx} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Pilih File Word (.docx)</Text>}

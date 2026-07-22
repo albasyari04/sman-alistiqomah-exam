@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
-import * as FileSystem from 'expo-file-system/legacy'
+
+const LETTERS = ['a', 'b', 'c', 'd', 'e']
 
 function decodeXmlEntities(str) {
   return str
@@ -35,42 +36,69 @@ function extractParagraphs(xml) {
   })
 }
 
-// STRATEGI A: nomor & huruf ditulis manual sebagai teks (contoh: "1. ..." / "a. ...")
-// Sekarang: soal TANPA pilihan jawaban pun tetap dimasukkan (a-e dikosongkan),
-// supaya bisa dilengkapi manual di layar Review.
+// Cari huruf opsi (a-e) yang diketik manual di AWAL paragraf, contoh "a. meter" / "b) massa"
+const TYPED_OPTION_REGEX = /^([a-eA-E])[.)]\s*/
+
+// Ambil opsi jawaban dari sekumpulan paragraf "body" (paragraf di antara dua soal).
+// Menangani 3 kondisi, bisa campur dalam satu soal:
+//   1. Opsi diketik manual dengan huruf ("a. meter") -> huruf dipakai apa adanya.
+//   2. Opsi pakai fitur Numbering/List bawaan Word (numId ada, tapi teks TIDAK ada huruf
+//      karena hurufnya dirender oleh Word, bukan tersimpan sebagai teks) -> huruf diambil
+//      berurutan (a, b, c, d, e) sesuai urutan kemunculan paragraf.
+//   3. Paragraf tanpa huruf & tanpa numId (bukan bagian dari daftar opsi) -> diabaikan.
+function extractOptionsFromBody(bodyParagraphs) {
+  const options = { a: '', b: '', c: '', d: '', e: '' }
+  const used = new Set()
+
+  function nextAutoLetter() {
+    return LETTERS.find((l) => !used.has(l)) || null
+  }
+
+  for (const p of bodyParagraphs) {
+    if (!p.text) continue
+
+    const typedMatch = p.text.match(TYPED_OPTION_REGEX)
+    let letter = null
+    let content = ''
+
+    if (typedMatch) {
+      letter = typedMatch[1].toLowerCase()
+      content = p.text.slice(typedMatch[0].length).trim()
+    } else if (p.numId) {
+      // Paragraf ini bagian dari sebuah list (numbering asli Word) tapi tidak ada
+      // huruf tertulis -> anggap ini opsi berikutnya secara berurutan.
+      letter = nextAutoLetter()
+      content = p.text
+    } else {
+      // Bukan opsi berhuruf & bukan list -> lewati (kemungkinan lanjutan teks soal).
+      continue
+    }
+
+    if (letter && !used.has(letter) && content !== '') {
+      options[letter] = content
+      used.add(letter)
+    }
+  }
+
+  return options
+}
+
+// STRATEGI A: nomor soal ditulis manual sebagai teks (contoh: "1. ..." / "1) ...")
 function parseByTypedNumbers(paragraphs) {
   const questions = []
   const qStartRegex = /^\d{1,3}[.)]\s*/
-  // 'm' (multiline): huruf opsi HARUS di awal baris, supaya kata biasa yang
-  // kebetulan diakhiri titik (contoh: "...ide barunya.") tidak salah terbaca
-  // sebagai opsi "a."
-  const optRegex = /^([a-eA-E])[.)]\s*/gm
 
   let i = 0
   while (i < paragraphs.length) {
     const p = paragraphs[i]
     if (p.text && qStartRegex.test(p.text)) {
       const stem = p.text.replace(qStartRegex, '').trim()
-      let body = ''
       let j = i + 1
       while (j < paragraphs.length && !(paragraphs[j].text && qStartRegex.test(paragraphs[j].text))) {
-        body += paragraphs[j].text + '\n'
         j++
       }
 
-      const matches = [...body.matchAll(optRegex)]
-      const options = { a: '', b: '', c: '', d: '', e: '' }
-
-      if (matches.length >= 2) {
-        for (let k = 0; k < matches.length; k++) {
-          const label = matches[k][1].toLowerCase()
-          const start = matches[k].index + matches[k][0].length
-          const end = k + 1 < matches.length ? matches[k + 1].index : body.length
-          options[label] = body.slice(start, end).replace(/[\n\t]+/g, ' ').trim()
-        }
-      }
-      // Kalau matches < 2 (tidak ada pilihan jawaban terdeteksi), options tetap kosong ""
-      // tapi soal TETAP dimasukkan, tidak dibuang.
+      const options = extractOptionsFromBody(paragraphs.slice(i + 1, j))
 
       questions.push({
         text: stem,
@@ -91,9 +119,8 @@ function parseByTypedNumbers(paragraphs) {
 }
 
 // STRATEGI B: nomor soal dari fitur "Numbering" Word (soal pakai numId),
-// tapi pilihan jawaban (a./b./c./d./e.) diketik manual sebagai teks biasa TANPA numId.
-// Jadi: paragraf ber-numId = awal soal baru. Paragraf lain di antaranya = "body"
-// yang lalu diparse dengan regex huruf, persis seperti STRATEGI A.
+// opsi jawaban bisa diketik manual ATAU juga pakai numbering Word sendiri (ditangani
+// oleh extractOptionsFromBody).
 function parseByWordNumbering(paragraphs) {
   const withNum = paragraphs.filter((p) => p.numId && p.text)
   if (withNum.length === 0) return []
@@ -102,26 +129,13 @@ function parseByWordNumbering(paragraphs) {
   withNum.forEach((p) => { freq[p.numId] = (freq[p.numId] || 0) + 1 })
   const qNumId = Object.keys(freq).reduce((a, b) => (freq[a] > freq[b] ? a : b))
 
-  const optRegex = /^([a-eA-E])[.)]\s*/gm
   const questions = []
   let stem = null
-  let body = ''
+  let bodyParas = []
 
   function flush() {
     if (stem === null) return
-    const matches = [...body.matchAll(optRegex)]
-    const options = { a: '', b: '', c: '', d: '', e: '' }
-
-    if (matches.length >= 2) {
-      for (let k = 0; k < matches.length; k++) {
-        const label = matches[k][1].toLowerCase()
-        const start = matches[k].index + matches[k][0].length
-        const end = k + 1 < matches.length ? matches[k + 1].index : body.length
-        options[label] = body.slice(start, end).replace(/[\n\t]+/g, ' ').trim()
-      }
-    }
-    // Kalau matches < 2, options tetap kosong "" tapi soal tetap dimasukkan.
-
+    const options = extractOptionsFromBody(bodyParas)
     questions.push({
       text: stem,
       a: options.a,
@@ -138,9 +152,9 @@ function parseByWordNumbering(paragraphs) {
     if (p.numId === qNumId) {
       flush()
       stem = p.text
-      body = ''
+      bodyParas = []
     } else if (stem !== null) {
-      body += p.text + '\n'
+      bodyParas.push(p)
     }
   })
   flush()
@@ -148,10 +162,10 @@ function parseByWordNumbering(paragraphs) {
   return questions
 }
 
-export async function parseDocxToQuestions(fileUri) {
-  const base64 = await FileSystem.readAsStringAsync(fileUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  })
+// Terima STRING BASE64 dari isi file .docx (bukan file URI), supaya fungsi ini
+// tidak bergantung pada cara baca file (yang berbeda antara native & web).
+// Pemanggil (screen) bertanggung jawab membaca file jadi base64 sesuai platform.
+export async function parseDocxToQuestions(base64) {
   const zip = await JSZip.loadAsync(base64, { base64: true })
   const xmlFile = zip.file('word/document.xml')
   if (!xmlFile) throw new Error('File bukan .docx yang valid')
