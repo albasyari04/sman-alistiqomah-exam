@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { addQuestionsBulk } from '../../services/questionService'
+import { showAlert } from '../../utils/crossAlert'
 
 const LETTERS = ['a', 'b', 'c', 'd', 'e']
 
@@ -42,10 +43,32 @@ export default function ReviewJawabanScreen({ route, navigation }) {
     return !!q.correct && q[q.correct]?.trim() !== ''
   }
 
+  async function doSave() {
+    setSaving(true)
+    try {
+      const { error } = await addQuestionsBulk(examId, questions)
+      setSaving(false)
+
+      if (error) {
+        showAlert('Gagal Menyimpan', error.message)
+      } else {
+        showAlert('Berhasil', `${questions.length} soal berhasil disimpan.`, [
+          { text: 'OK', onPress: () => navigation.navigate('DaftarUjianGuru') },
+        ])
+      }
+    } catch (err) {
+      // Penting: addQuestionsBulk bisa melempar exception (bukan cuma { error })
+      // -- misal masalah jaringan. Tanpa try/catch ini, tombol akan terlihat
+      // "tidak bereaksi" karena promise yang gagal tidak pernah tertangani.
+      setSaving(false)
+      showAlert('Gagal Menyimpan', err.message || 'Terjadi kesalahan tak terduga.')
+    }
+  }
+
   async function handleSaveAll() {
     const belumValid = questions.filter((q) => !isQuestionValid(q))
     if (belumValid.length > 0) {
-      Alert.alert(
+      showAlert(
         'Perhatian',
         `Masih ada ${belumValid.length} soal yang belum lengkap. Pastikan setiap soal punya teks pertanyaan dan minimal 2 pilihan jawaban. Kunci jawaban boleh dikosongkan dulu.`
       )
@@ -54,32 +77,19 @@ export default function ReviewJawabanScreen({ route, navigation }) {
 
     const belumAdaKunci = questions.filter((q) => !hasAnswerKey(q)).length
 
-    const proceed = async () => {
-      setSaving(true)
-      const { error } = await addQuestionsBulk(examId, questions)
-      setSaving(false)
-
-      if (error) {
-        Alert.alert('Gagal Menyimpan', error.message)
-      } else {
-        Alert.alert('Berhasil', `${questions.length} soal berhasil disimpan.`)
-        navigation.navigate('DaftarUjianGuru')
-      }
-    }
-
     if (belumAdaKunci > 0) {
-      Alert.alert(
+      showAlert(
         'Kunci Jawaban Belum Lengkap',
         `${belumAdaKunci} soal belum ditandai kunci jawabannya. Soal tetap bisa disimpan dan kunci jawaban bisa dilengkapi nanti. Lanjut simpan?`,
         [
           { text: 'Batal', style: 'cancel' },
-          { text: 'Simpan Sekarang', onPress: proceed },
+          { text: 'Simpan Sekarang', onPress: doSave },
         ]
       )
       return
     }
 
-    proceed()
+    doSave()
   }
 
   const validCount = questions.filter(isQuestionValid).length

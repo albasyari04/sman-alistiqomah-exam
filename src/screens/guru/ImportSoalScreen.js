@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 import { useState } from 'react'
 import * as DocumentPicker from 'expo-document-picker'
 import Papa from 'papaparse'
 import { addQuestionsBulk } from '../../services/questionService'
 import { parseDocxToQuestions } from '../../services/docxImportService'
+import { showAlert } from '../../utils/crossAlert'
 
 // FileSystem (expo-file-system) TIDAK didukung di platform web ("is not available on web").
 // Import lazy hanya dipakai kalau bukan web, supaya tidak error saat bundling/berjalan di web.
@@ -70,23 +71,29 @@ export default function ImportSoalScreen({ route, navigation }) {
               correct: row.correct?.toLowerCase(),
             }))
 
-          const { error } = await addQuestionsBulk(examId, questions)
-          setLoading(false)
-          if (error) {
-            Alert.alert('Gagal Import', error.message)
-          } else {
-            Alert.alert('Berhasil', `${questions.length} soal berhasil diimport`)
-            navigation.navigate('DaftarUjianGuru')
+          try {
+            const { error } = await addQuestionsBulk(examId, questions)
+            setLoading(false)
+            if (error) {
+              showAlert('Gagal Import', error.message)
+            } else {
+              showAlert('Berhasil', `${questions.length} soal berhasil diimport`, [
+                { text: 'OK', onPress: () => navigation.navigate('DaftarUjianGuru') },
+              ])
+            }
+          } catch (err) {
+            setLoading(false)
+            showAlert('Gagal Import', err.message || 'Terjadi kesalahan tak terduga.')
           }
         },
         error: (err) => {
           setLoading(false)
-          Alert.alert('Gagal Membaca CSV', err.message)
+          showAlert('Gagal Membaca CSV', err.message)
         },
       })
     } catch (err) {
       setLoading(false)
-      Alert.alert('Gagal Membaca File', err.message)
+      showAlert('Gagal Membaca File', err.message)
     }
   }
 
@@ -103,7 +110,7 @@ export default function ImportSoalScreen({ route, navigation }) {
       setLoading(false)
 
       if (questions.length === 0) {
-        Alert.alert(
+        showAlert(
           'Tidak Ditemukan Soal',
           'Setiap soal perlu diawali angka (contoh: "1."), atau memakai fitur Numbering bawaan Word. Pilihan jawaban (a. b. c. ...) boleh dikosongkan dulu, nanti bisa dilengkapi di layar berikutnya.'
         )
@@ -113,7 +120,7 @@ export default function ImportSoalScreen({ route, navigation }) {
       navigation.navigate('ReviewJawaban', { examId, questions })
     } catch (err) {
       setLoading(false)
-      Alert.alert('Gagal Membaca File', err.message)
+      showAlert('Gagal Membaca File', err.message)
     }
   }
 
