@@ -19,7 +19,13 @@ function extractParagraphs(xml) {
     const numIdMatch = block.match(/<w:numPr>[\s\S]*?<w:numId w:val="(\d+)"/)
     const numId = numIdMatch ? numIdMatch[1] : null
 
-    const tokenRegex = /<w:t[^>]*>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g
+    // PENTING: "<w:t(?:\s[^>]*)?>" -- HARUS diikuti spasi atau langsung '>'.
+    // Kalau ditulis "<w:t[^>]*>" (tanpa syarat spasi), pola ini SALAH ikut
+    // mencocokkan tag "<w:tab/>" (karena "ab/" dianggap "atribut" yang valid),
+    // sehingga parser salah kira tab adalah awal teks dan "menelan" semua kode
+    // XML sampai ketemu </w:t> berikutnya -> inilah penyebab kode XML mentah
+    // bocor ke dalam teks soal/pilihan jawaban.
+    const tokenRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g
     let text = ''
     let match
     while ((match = tokenRegex.exec(block)) !== null) {
@@ -36,15 +42,39 @@ function extractParagraphs(xml) {
   })
 }
 
-// Cari huruf opsi (a-e) yang diketik manual di AWAL paragraf, contoh "a. meter" / "b) massa"
-const TYPED_OPTION_REGEX = /^([a-eA-E])[.)]\s*/
+// Huruf opsi (a-e) dianggap AWAL pilihan baru kalau muncul di:
+//   - awal paragraf ("a. meter")
+//   - setelah tab ("...\ta. meter", umum kalau 2 pilihan diketik di baris yang sama)
+//   - setelah 2 spasi atau lebih ("...gerak   d. perepatan", perataan manual)
+// Sengaja TIDAK mencocokkan huruf setelah 1 spasi biasa, supaya kata biasa yang
+// diikuti spasi + huruf tidak salah kebaca sebagai pilihan jawaban.
+const INLINE_OPTION_REGEX = /(?:^|\t|\s{2,})([a-eA-E])[.)]\s*/g
+
+// Pecah SATU paragraf menjadi satu atau lebih {letter, content}.
+// Menangani kasus 2 pilihan jawaban ditulis di baris yang sama, dipisah tab/spasi ganda.
+// Return null kalau tidak ada huruf terketik sama sekali di paragraf ini.
+function splitParagraphIntoOptions(text) {
+  const matches = [...text.matchAll(INLINE_OPTION_REGEX)]
+  if (matches.length === 0) return null
+
+  const result = []
+  for (let k = 0; k < matches.length; k++) {
+    const letter = matches[k][1].toLowerCase()
+    const start = matches[k].index + matches[k][0].length
+    const end = k + 1 < matches.length ? matches[k + 1].index : text.length
+    const content = text.slice(start, end).replace(/[\t\n]+$/g, '').trim()
+    result.push({ letter, content })
+  }
+  return result
+}
 
 // Ambil opsi jawaban dari sekumpulan paragraf "body" (paragraf di antara dua soal).
 // Menangani 3 kondisi, bisa campur dalam satu soal:
-//   1. Opsi diketik manual dengan huruf ("a. meter") -> huruf dipakai apa adanya.
-//   2. Opsi pakai fitur Numbering/List bawaan Word (numId ada, tapi teks TIDAK ada huruf
-//      karena hurufnya dirender oleh Word, bukan tersimpan sebagai teks) -> huruf diambil
-//      berurutan (a, b, c, d, e) sesuai urutan kemunculan paragraf.
+//   1. Opsi diketik manual dengan huruf, satu per paragraf ATAU beberapa dalam satu
+//      paragraf yang sama (dipisah tab/spasi ganda) -> huruf dipakai apa adanya.
+//   2. Opsi pakai fitur Numbering/List bawaan Word (numId ada, tapi teks TIDAK ada
+//      huruf karena hurufnya dirender oleh Word, bukan tersimpan sebagai teks) ->
+//      huruf diambil berurutan (a, b, c, d, e) sesuai urutan kemunculan paragraf.
 //   3. Paragraf tanpa huruf & tanpa numId (bukan bagian dari daftar opsi) -> diabaikan.
 function extractOptionsFromBody(bodyParagraphs) {
   const options = { a: '', b: '', c: '', d: '', e: '' }
@@ -57,27 +87,25 @@ function extractOptionsFromBody(bodyParagraphs) {
   for (const p of bodyParagraphs) {
     if (!p.text) continue
 
-    const typedMatch = p.text.match(TYPED_OPTION_REGEX)
-    let letter = null
-    let content = ''
+    const split = splitParagraphIntoOptions(p.text)
 
-    if (typedMatch) {
-      letter = typedMatch[1].toLowerCase()
-      content = p.text.slice(typedMatch[0].length).trim()
+    if (split) {
+      for (const { letter, content } of split) {
+        if (!used.has(letter) && content !== '') {
+          options[letter] = content
+          used.add(letter)
+        }
+      }
     } else if (p.numId) {
       // Paragraf ini bagian dari sebuah list (numbering asli Word) tapi tidak ada
       // huruf tertulis -> anggap ini opsi berikutnya secara berurutan.
-      letter = nextAutoLetter()
-      content = p.text
-    } else {
-      // Bukan opsi berhuruf & bukan list -> lewati (kemungkinan lanjutan teks soal).
-      continue
+      const letter = nextAutoLetter()
+      if (letter && p.text !== '') {
+        options[letter] = p.text
+        used.add(letter)
+      }
     }
-
-    if (letter && !used.has(letter) && content !== '') {
-      options[letter] = content
-      used.add(letter)
-    }
+    // else: bukan opsi berhuruf & bukan list -> lewati (kemungkinan lanjutan teks soal).
   }
 
   return options
