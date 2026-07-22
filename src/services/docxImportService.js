@@ -18,14 +18,7 @@ function extractParagraphs(xml) {
     const numIdMatch = block.match(/<w:numPr>[\s\S]*?<w:numId w:val="(\d+)"/)
     const numId = numIdMatch ? numIdMatch[1] : null
 
-    // PENTING: "(?:\s[^>]*)?" — bukan "[^>]*" — supaya setelah "w:t" wajib
-    // langsung ">" ATAU spasi (baru diikuti atribut). Kalau dibiarkan
-    // "[^>]*" longgar, pola ini SALAH ikut mencocokkan "<w:tab/>" sebagai
-    // pembuka tag <w:t...> (karena "w:t" + "ab/" + ">" kebetulan cocok pola
-    // yang sama). Efeknya regex lalu mencari "</w:t>" penutup berikutnya
-    // yang letaknya jauh di depan, dan menelan seluruh XML mentah di antara
-    // keduanya sebagai "teks" — inilah sumber bug soal/opsi berisi XML.
-    const tokenRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g
+    const tokenRegex = /<w:t[^>]*>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g
     let text = ''
     let match
     while ((match = tokenRegex.exec(block)) !== null) {
@@ -48,14 +41,10 @@ function extractParagraphs(xml) {
 function parseByTypedNumbers(paragraphs) {
   const questions = []
   const qStartRegex = /^\d{1,3}[.)]\s*/
-  // 'm' (multiline): huruf opsi harus di awal baris ATAU tepat setelah tab,
-  // supaya kata biasa yang kebetulan diakhiri titik (contoh: "...ide
-  // barunya.") tidak salah terbaca sebagai opsi "a.". Syarat "setelah tab"
-  // ditambahkan supaya format 2 opsi sejajar dalam satu baris (kebiasaan
-  // umum saat menulis soal PG di Word, contoh: "a. Usaha [tab] d. Seniman")
-  // tetap terpisah dengan benar jadi opsi A dan D masing-masing, bukan
-  // ikut menempel jadi satu opsi.
-  const optRegex = /(?:^|\t)([a-eA-E])[.)]\s*/gm
+  // 'm' (multiline): huruf opsi HARUS di awal baris, supaya kata biasa yang
+  // kebetulan diakhiri titik (contoh: "...ide barunya.") tidak salah terbaca
+  // sebagai opsi "a."
+  const optRegex = /^([a-eA-E])[.)]\s*/gm
 
   let i = 0
   while (i < paragraphs.length) {
@@ -113,10 +102,7 @@ function parseByWordNumbering(paragraphs) {
   withNum.forEach((p) => { freq[p.numId] = (freq[p.numId] || 0) + 1 })
   const qNumId = Object.keys(freq).reduce((a, b) => (freq[a] > freq[b] ? a : b))
 
-  // Sama seperti di parseByTypedNumbers: kenali huruf opsi di awal baris
-  // ATAU tepat setelah tab, supaya format 2 opsi sejajar dalam satu baris
-  // ("a. Usaha [tab] d. Seniman") tetap terpisah jadi opsi masing-masing.
-  const optRegex = /(?:^|\t)([a-eA-E])[.)]\s*/gm
+  const optRegex = /^([a-eA-E])[.)]\s*/gm
   const questions = []
   let stem = null
   let body = ''
