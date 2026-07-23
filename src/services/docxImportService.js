@@ -43,12 +43,38 @@ function extractParagraphs(xml) {
 }
 
 // Huruf opsi (a-e) dianggap AWAL pilihan baru kalau muncul di:
-//   - awal paragraf ("a. meter")
+//   - awal paragraf/teks ("a. meter")
 //   - setelah tab ("...\ta. meter", umum kalau 2 pilihan diketik di baris yang sama)
+//   - setelah baris baru / <w:br/> ("...meter\nb. detik", opsi dipisah baris
+//     tapi masih dalam SATU paragraf yang sama dengan soal)
 //   - setelah 2 spasi atau lebih ("...gerak   d. perepatan", perataan manual)
 // Sengaja TIDAK mencocokkan huruf setelah 1 spasi biasa, supaya kata biasa yang
 // diikuti spasi + huruf tidak salah kebaca sebagai pilihan jawaban.
-const INLINE_OPTION_REGEX = /(?:^|\t|\s{2,})([a-eA-E])[.)]\s*/g
+const INLINE_OPTION_REGEX = /(?:^|\t|\n|\s{2,})([a-eA-E])[.)]\s*/g
+
+// Label pembagian bagian soal yang umum dipakai di file ujian Indonesia,
+// misal "A. Pilihan Ganda" atau "B. Essay" / "B. Uraian". Paragraf ini
+// SECARA KEBETULAN cocok dengan pola huruf opsi (huruf di depan diikuti titik),
+// tapi ini BUKAN pilihan jawaban -- ini section header. Kalau tidak
+// dikecualikan, huruf di depannya (mis. "B.") akan salah terbaca sebagai
+// pilihan jawaban dengan isi "Essay", mencemari soal pilihan ganda terakhir
+// sebelum bagian ini.
+function isSectionHeaderLabel(text) {
+  return /^[a-eA-E][.)]\s*(pilihan\s*ganda|essay|essai|uraian|isian)\s*$/i.test(text.trim())
+}
+
+// Pisahkan teks SOAL (stem) dari pilihan jawaban yang diketik menyatu di
+// paragraf yang SAMA dengan soal (contoh: "...disebut...... a. Perubahan
+// Sosial   c. Dinamika Sosial"). Tanpa ini, seluruh teks (termasuk pilihan)
+// akan ikut tersimpan sebagai teks soal, dan kolom pilihan A-E kosong.
+function splitStemAndInlineOptions(text) {
+  const matches = [...text.matchAll(INLINE_OPTION_REGEX)]
+  if (matches.length === 0) return { stem: text, inlineOptionsText: null }
+  const firstMatchIndex = matches[0].index
+  const stem = text.slice(0, firstMatchIndex).trim()
+  const inlineOptionsText = text.slice(firstMatchIndex)
+  return { stem, inlineOptionsText }
+}
 
 // Pecah SATU paragraf menjadi satu atau lebih {letter, content}.
 // Menangani kasus 2 pilihan jawaban ditulis di baris yang sama, dipisah tab/spasi ganda.
@@ -80,12 +106,24 @@ function extractOptionsFromBody(bodyParagraphs) {
   const options = { a: '', b: '', c: '', d: '', e: '' }
   const used = new Set()
 
+  // Cek dulu: apakah di body ini ADA pilihan jawaban yang diketik manual
+  // pakai huruf (a. b. c. ...)? Kalau ya, mode paragraf ini adalah "diketik
+  // manual", dan fallback numId di bawah TIDAK dipakai sama sekali untuk body
+  // ini. Ini penting supaya paragraf ber-numId dari list/bagian lain yang
+  // tidak berhubungan (contoh nyata: bagian "Essay" bernomor 1-5 setelah
+  // soal pilihan ganda terakhir) tidak ikut disedot jadi pilihan jawaban --
+  // list itu numId-nya memang valid, tapi bukan bagian dari soal ini.
+  const hasExplicitLetters = bodyParagraphs.some(
+    (p) => p.text && !isSectionHeaderLabel(p.text) && splitParagraphIntoOptions(p.text) !== null
+  )
+
   function nextAutoLetter() {
     return LETTERS.find((l) => !used.has(l)) || null
   }
 
   for (const p of bodyParagraphs) {
     if (!p.text) continue
+    if (isSectionHeaderLabel(p.text)) continue // "A. Pilihan Ganda" / "B. Essay" dst -> bukan opsi
 
     const split = splitParagraphIntoOptions(p.text)
 
@@ -96,16 +134,19 @@ function extractOptionsFromBody(bodyParagraphs) {
           used.add(letter)
         }
       }
-    } else if (p.numId) {
+    } else if (p.numId && !hasExplicitLetters) {
       // Paragraf ini bagian dari sebuah list (numbering asli Word) tapi tidak ada
       // huruf tertulis -> anggap ini opsi berikutnya secara berurutan.
+      // Hanya dipakai kalau soal ini TIDAK punya pilihan berhuruf eksplisit
+      // sama sekali (lihat hasExplicitLetters di atas).
       const letter = nextAutoLetter()
       if (letter && p.text !== '') {
         options[letter] = p.text
         used.add(letter)
       }
     }
-    // else: bukan opsi berhuruf & bukan list -> lewati (kemungkinan lanjutan teks soal).
+    // else: bukan opsi berhuruf & bukan list (atau ada huruf eksplisit di soal
+    // lain) -> lewati (kemungkinan lanjutan teks soal, atau bagian lain dokumen).
   }
 
   return options
@@ -120,13 +161,24 @@ function parseByTypedNumbers(paragraphs) {
   while (i < paragraphs.length) {
     const p = paragraphs[i]
     if (p.text && qStartRegex.test(p.text)) {
-      const stem = p.text.replace(qStartRegex, '').trim()
+      const rawText = p.text.replace(qStartRegex, '').trim()
+      // Pisahkan teks soal murni dari pilihan jawaban yang mungkin diketik
+      // menyatu di paragraf yang sama (lihat splitStemAndInlineOptions).
+      const { stem, inlineOptionsText } = splitStemAndInlineOptions(rawText)
+
       let j = i + 1
       while (j < paragraphs.length && !(paragraphs[j].text && qStartRegex.test(paragraphs[j].text))) {
         j++
       }
 
-      const options = extractOptionsFromBody(paragraphs.slice(i + 1, j))
+      const bodyParagraphs = paragraphs.slice(i + 1, j)
+      if (inlineOptionsText) {
+        // Perlakukan pilihan yang menyatu di baris soal sebagai "paragraf body"
+        // paling awal, supaya diproses lewat jalur yang sama seperti pilihan
+        // yang ditulis di paragraf terpisah.
+        bodyParagraphs.unshift({ text: inlineOptionsText, numId: null })
+      }
+      const options = extractOptionsFromBody(bodyParagraphs)
 
       questions.push({
         text: stem,
@@ -163,9 +215,13 @@ function parseByWordNumbering(paragraphs) {
 
   function flush() {
     if (stem === null) return
-    const options = extractOptionsFromBody(bodyParas)
+    const { stem: cleanStem, inlineOptionsText } = splitStemAndInlineOptions(stem)
+    const bodyParagraphs = inlineOptionsText
+      ? [{ text: inlineOptionsText, numId: null }, ...bodyParas]
+      : bodyParas
+    const options = extractOptionsFromBody(bodyParagraphs)
     questions.push({
-      text: stem,
+      text: cleanStem,
       a: options.a,
       b: options.b,
       c: options.c,
