@@ -10,6 +10,7 @@ import HasilUjianGuru from '../screens/guru/HasilUjianGuru'
 import ReviewJawabanScreen from '../screens/guru/ReviewJawabanScreen'
 import PesertaUjianScreen from '../screens/guru/PesertaUjianScreen'
 import BankSoalScreen from '../screens/guru/BankSoalScreen'
+import DaftarSoalScreen from '../screens/guru/DaftarSoalScreen'
 import EditSoalScreen from '../screens/guru/EditSoalScreen'
 import PengaturanScreen from '../screens/guru/PengaturanScreen'
 import PengumumanScreen from '../screens/guru/PengumumanScreen'
@@ -40,6 +41,7 @@ export default function GuruStack() {
       <Stack.Screen name="ReviewJawaban" component={ReviewJawabanScreen} />
       <Stack.Screen name="PesertaUjian" component={PesertaUjianScreen} options={{ title: 'Peserta Ujian' }} />
       <Stack.Screen name="BankSoal" component={BankSoalScreen} options={{ title: 'Bank Soal' }} />
+      <Stack.Screen name="DaftarSoal" component={DaftarSoalScreen} options={{ title: 'Daftar Soal' }} />
       <Stack.Screen name="EditSoal" component={EditSoalScreen} options={{ title: 'Edit Soal' }} />
       <Stack.Screen name="Pengaturan" component={PengaturanScreen} options={{ title: 'Pengaturan' }} />
       <Stack.Screen name="Pengumuman" component={PengumumanScreen} options={{ title: 'Pengumuman' }} />

@@ -59,6 +59,13 @@ export default function DaftarUjianGuru({ navigation }) {
 
               <TouchableOpacity
                 style={styles.actionButton}
+                onPress={() => navigation.navigate('DaftarSoal', { examId: item.id, examTitle: item.title })}
+              >
+                <Text style={styles.actionText}>Edit Soal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionButton}
                 onPress={() => navigation.navigate('HasilUjian', { examId: item.id, examTitle: item.title })}
               >
                 <Text style={styles.actionText}>Lihat Hasil</Text>
