@@ -1,5 +1,25 @@
 import { supabase } from '../lib/supabase'
 
+// Ambil order_number berikutnya yang aman dipakai untuk exam ini, berdasarkan
+// soal yang SUDAH ADA di database (bukan counter lokal di layar). Ini penting
+// supaya soal baru (manual maupun import) selalu nyambung ke urutan paling
+// akhir, tidak menimpa/bentrok dengan soal yang sudah tersimpan sebelumnya
+// (misal: sudah import 20 soal, lalu tambah 1 soal essay manual -> harus jadi
+// soal ke-21, bukan ke-1 lagi).
+export async function getNextOrderNumber(examId) {
+  const { data, error } = await supabase
+    .from('questions')
+    .select('order_number')
+    .eq('exam_id', examId)
+    .order('order_number', { ascending: false })
+    .limit(1)
+
+  if (error) return { nextOrder: null, error }
+
+  const maxOrder = data && data.length > 0 ? data[0].order_number : 0
+  return { nextOrder: maxOrder + 1, error: null }
+}
+
 export async function addQuestion(examId, question, orderNumber) {
   const { data, error } = await supabase.from('questions').insert({
     exam_id: examId,
@@ -18,6 +38,11 @@ export async function addQuestion(examId, question, orderNumber) {
 }
 
 export async function addQuestionsBulk(examId, questionsArray) {
+  // Selalu mulai dari order_number berikutnya yang sesungguhnya di DB,
+  // supaya import tidak pernah menimpa soal yang sudah ada.
+  const { nextOrder, error: orderError } = await getNextOrderNumber(examId)
+  if (orderError) return { data: null, error: orderError }
+
   const rows = questionsArray.map((q, idx) => ({
     exam_id: examId,
     question_text: q.text,
@@ -27,7 +52,7 @@ export async function addQuestionsBulk(examId, questionsArray) {
     option_d: q.d,
     option_e: q.e || null,
     correct_option: q.correct,
-    order_number: idx + 1,
+    order_number: nextOrder + idx,
   }))
   const { data, error } = await supabase.from('questions').insert(rows)
   return { data, error }

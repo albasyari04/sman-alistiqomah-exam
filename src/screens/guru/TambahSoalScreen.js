@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Image, ActivityIndicator, ScrollView } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useAuth } from '../../context/AuthContext'
-import { addQuestion, uploadQuestionImage } from '../../services/questionService'
+import { addQuestion, uploadQuestionImage, getNextOrderNumber } from '../../services/questionService'
 import BottomNavGuru from '../../components/BottomNavGuru'
 
 export default function TambahSoalScreen({ route, navigation }) {
@@ -20,6 +20,25 @@ export default function TambahSoalScreen({ route, navigation }) {
   const [imageUri, setImageUri] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [addedCount, setAddedCount] = useState(0)
+
+  // nextOrder = order_number yang akan dipakai untuk soal berikutnya.
+  // Diambil dari DB (bukan dihitung dari 0) supaya nyambung ke soal yang
+  // sudah ada di exam ini (misal dari hasil import sebelumnya), lalu
+  // di-increment lokal setiap berhasil tambah 1 soal.
+  const [nextOrder, setNextOrder] = useState(null)
+  const [loadingOrder, setLoadingOrder] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    async function loadNextOrder() {
+      const { nextOrder: n, error } = await getNextOrderNumber(examId)
+      if (!active) return
+      setNextOrder(error ? 1 : n)
+      setLoadingOrder(false)
+    }
+    loadNextOrder()
+    return () => { active = false }
+  }, [examId])
 
   async function pickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -78,15 +97,17 @@ export default function TambahSoalScreen({ route, navigation }) {
         type: questionType,
         imageUrl,
       },
-      addedCount + 1
+      nextOrder
     )
 
     if (error) {
       Alert.alert('Gagal', error.message)
     } else {
+      const savedOrder = nextOrder
       setAddedCount(addedCount + 1)
+      setNextOrder(nextOrder + 1)
       resetForm()
-      Alert.alert('Berhasil', `Soal #${addedCount + 1} ditambahkan`)
+      Alert.alert('Berhasil', `Soal #${savedOrder} ditambahkan`)
     }
   }
 
@@ -163,8 +184,8 @@ export default function TambahSoalScreen({ route, navigation }) {
         </Text>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={handleAddQuestion} disabled={uploading}>
-        {uploading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>+ Tambah Soal</Text>}
+      <TouchableOpacity style={styles.button} onPress={handleAddQuestion} disabled={uploading || loadingOrder}>
+        {uploading || loadingOrder ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>+ Tambah Soal</Text>}
       </TouchableOpacity>
 
       <TouchableOpacity
